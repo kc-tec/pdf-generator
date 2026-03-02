@@ -8,25 +8,23 @@
     <!-- Tailwind CSS for Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Phosphor Icons (Only used for the UI form now, not the PDF) -->
+    <!-- Phosphor Icons for the UI -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- html2pdf.js for PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- jsPDF for True Vector PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        /* A4 specific dimensions */
+        /* A4 specific dimensions for exact visual mapping */
         .a4-wrapper {
             width: 210mm; 
             min-height: 297mm;
-            background-color: white;
+            background-color: #f8fafc;
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             position: relative;
             overflow: hidden;
             flex-shrink: 0;
-            /* Ensure text renders sharply in the canvas */
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
+            font-family: Helvetica, Arial, sans-serif;
         }
 
         /* Custom Scrollbar */
@@ -34,14 +32,6 @@
         .preview-container::-webkit-scrollbar-track { background: #f1f5f9; }
         .preview-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .preview-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* Safe CSS Background pattern for PDF */
-        .doc-bg {
-            background-image: repeating-linear-gradient(45deg, #f8fafc 25%, transparent 25%, transparent 75%, #f8fafc 75%, #f8fafc), 
-                              repeating-linear-gradient(45deg, #f8fafc 25%, transparent 25%, transparent 75%, #f8fafc 75%, #f8fafc);
-            background-position: 0 0, 10px 10px;
-            background-size: 20px 20px;
-        }
 
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
@@ -60,7 +50,7 @@
         <div class="p-6 flex-grow">
             <div class="flex items-center gap-3 mb-8">
                 <i class="ph-fill ph-file-pdf text-4xl text-blue-600"></i>
-                <h1 class="text-xl font-bold text-slate-900">PDF Generator</h1>
+                <h1 class="text-xl font-bold text-slate-900">Vector PDF Generator</h1>
             </div>
 
             <form id="profile-form" class="space-y-5" onsubmit="event.preventDefault();">
@@ -99,132 +89,101 @@
 
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">ID Photo</label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 transition-colors bg-slate-50 cursor-pointer group" onclick="document.getElementById('input-photo').click()">
+                    <!-- FIX: Pure HTML label mapping (No JS click triggers needed) -->
+                    <label for="input-photo" class="mt-1 block w-full px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 transition-colors bg-slate-50 cursor-pointer group">
                         <div class="space-y-1 text-center">
                             <i class="ph ph-image text-4xl text-slate-400 mx-auto group-hover:text-blue-500 transition-colors"></i>
                             <div class="flex text-sm text-slate-600 justify-center">
-                                <label for="input-photo" class="relative cursor-pointer bg-transparent rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                                    <span>Upload a photo</span>
-                                    <input id="input-photo" type="file" accept="image/png, image/jpeg, image/jpg" class="sr-only">
-                                </label>
+                                <span class="relative bg-transparent rounded-md font-medium text-blue-600 hover:text-blue-500">
+                                    Click to upload photo
+                                </span>
+                                <input id="input-photo" type="file" accept="image/png, image/jpeg, image/jpg" class="sr-only">
                             </div>
-                            <p class="text-xs text-slate-500">PNG, JPG up to 5MB</p>
+                            <p class="text-xs text-slate-500">PNG or JPG</p>
                         </div>
-                    </div>
+                    </label>
                 </div>
             </form>
         </div>
 
         <div class="p-6 border-t border-slate-200 bg-slate-50 mt-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
-            <button id="download-btn" onclick="generatePDF()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all">
+            <button id="download-btn" onclick="generateVectorPDF()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all">
                 <i class="ph-bold ph-download-simple text-xl"></i>
-                Download A4 PDF
+                Download Vector PDF
             </button>
             <p id="status-msg" class="text-xs text-center text-blue-600 font-medium mt-3 hidden animate-pulse">
-                Processing PDF, please wait...
+                Generating Vector PDF...
             </p>
         </div>
     </aside>
 
-    <!-- Right Panel: Live A4 Preview -->
+    <!-- Right Panel: Live A4 Visual Preview -->
     <main class="w-full md:w-2/3 lg:w-3/4 bg-slate-300 h-[50vh] md:h-screen preview-container overflow-auto relative p-4 md:p-8 flex justify-center items-start">
         
-        <!-- THE A4 DOCUMENT (Target for html2pdf) -->
-        <div id="a4-document" class="a4-wrapper flex flex-col bg-white">
-            
-            <!-- Document Header -->
-            <header class="bg-blue-800 text-white p-10 flex justify-between items-center h-48 relative overflow-hidden">
-                <div class="absolute -right-10 -top-10 w-64 h-64 bg-blue-700 rounded-full opacity-50"></div>
-                
-                <div class="relative z-10">
-                    <h1 class="text-4xl font-extrabold tracking-tight uppercase">Official Profile</h1>
-                    <p class="text-blue-200 text-lg mt-2 font-medium">Standard Registration Document</p>
-                </div>
-                
-                <!-- SVG Graduation Cap (Safe for PDF Canvas) -->
-                <div class="relative z-10 bg-white p-3 rounded-xl shadow-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#1e40af" viewBox="0 0 256 256">
-                        <path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,118.4V168a8,8,0,0,0,16,0V126.93l68.24,36.4A8,8,0,0,0,120,164.2V200a8,8,0,0,0,4.25,7.06l32,17.07a8,8,0,0,0,7.5,0l32-17.07A8,8,0,0,0,200,200V164.2a8,8,0,0,0,3.76-.87L251.76,103.06a8,8,0,0,0,0-14.12ZM184,196.26l-24,12.8-24-12.8v-23l48-25.6Zm-56-42L25.81,96,128,41.51,230.19,96Z"></path>
+        <!-- VISUAL PREVIEW ONLY (This is mapped exactly to the mm dimensions in the Vector PDF) -->
+        <div class="a4-wrapper">
+            <!-- Header -->
+            <div class="h-[50mm] bg-blue-800 text-white p-[10mm]">
+                <h1 class="text-[26pt] font-bold uppercase tracking-tight leading-none mt-2">Official Profile</h1>
+                <p class="text-[14pt] text-blue-200 mt-2">Standard Registration Document</p>
+            </div>
+
+            <!-- ID Card Area -->
+            <div class="absolute top-[70mm] left-[50mm] w-[110mm] h-[150mm] bg-white rounded-md shadow-xl border border-slate-200">
+                <!-- Card Blue Top -->
+                <div class="h-[25mm] bg-blue-600 w-full rounded-t-md"></div>
+
+                <!-- Avatar Photo -->
+                <div class="absolute top-[5mm] left-[35mm] w-[40mm] h-[40mm] rounded-full border-[1.5mm] border-white bg-slate-200 overflow-hidden shadow-sm flex items-center justify-center relative">
+                    <!-- Placeholder SVG -->
+                    <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-20 h-20 text-slate-400 absolute">
+                        <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>
                     </svg>
+                    <!-- Uploaded Image -->
+                    <img id="display-photo" src="" alt="Profile" class="w-full h-full object-cover relative z-10 hidden">
                 </div>
-            </header>
 
-            <!-- Document Body -->
-            <div class="flex-grow p-12 doc-bg flex flex-col items-center">
-                
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden w-[100mm] border border-slate-200 transform -translate-y-20 relative z-20">
-                    <div class="bg-blue-600 h-24 relative flex justify-center"></div>
+                <!-- Card Details -->
+                <div class="mt-[28mm] px-4 text-center flex flex-col items-center">
+                    <h2 id="display-name" class="text-[20pt] font-bold text-slate-800 uppercase tracking-wide leading-none">Jane Doe</h2>
+                    <p class="text-[9pt] font-bold text-blue-600 mt-2 uppercase tracking-wide">Student ID Badge</p>
                     
-                    <!-- Photo Container (100% Canvas Safe) -->
-                    <div class="flex justify-center -mt-16 relative z-10">
-                        <div class="w-32 h-32 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-100 flex items-center justify-center relative">
-                            <!-- SVG Placeholder -->
-                            <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#cbd5e1" viewBox="0 0 256 256" class="absolute">
-                                <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>
-                            </svg>
-                            <!-- Real Image (Hidden until uploaded) -->
-                            <img id="display-photo" src="" alt="Profile" class="w-full h-full object-cover relative z-10 hidden">
-                        </div>
+                    <div class="w-[30mm] h-[0.5mm] bg-blue-100 mt-2 mb-3"></div>
+
+                    <!-- Details Box -->
+                    <div class="w-[90mm] h-[40mm] bg-slate-50 border border-slate-100 rounded text-left p-[5mm]">
+                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">CLASSROOM</p>
+                        <p id="display-class" class="text-[11pt] font-bold text-slate-700 mb-3 leading-tight">Science 101</p>
+
+                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">PHONE</p>
+                        <p id="display-phone" class="text-[11pt] font-bold text-slate-700 leading-tight">+1 (555) 000-0000</p>
                     </div>
-
-                    <!-- Details -->
-                    <div class="px-6 pb-8 pt-4 text-center">
-                        <h2 id="display-name" class="text-2xl font-bold text-slate-800 uppercase tracking-wide">Jane Doe</h2>
-                        <p class="text-blue-600 font-bold text-sm mt-1 uppercase tracking-wider">Student ID Badge</p>
-                        
-                        <div class="w-12 h-1 bg-blue-100 mx-auto my-4 rounded-full"></div>
-                        
-                        <div class="space-y-3 text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-white p-1.5 rounded-md shadow-sm border border-slate-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3b82f6" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM176,88a40,40,0,1,1-40-40A40,40,0,0,1,176,88Z"></path></svg>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Classroom</p>
-                                    <p id="display-class" class="text-sm font-semibold text-slate-700">Science 101</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div class="bg-white p-1.5 rounded-md shadow-sm border border-slate-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3b82f6" viewBox="0 0 256 256"><path d="M222.37,158.46l-47.11-21.11a16,16,0,0,0-15.17,1.4l-34.49,22.76a143.25,143.25,0,0,1-51.44-51.44l22.76-34.49a16,16,0,0,0,1.4-15.17L77.21,13.3A16,16,0,0,0,62.83,3.87C17.39,10,0,49.77,0,59.34A161.43,161.43,0,0,0,131.64,233.19C175.69,256,229.62,256,236.4,256h.05a16,16,0,0,0,15.71-12.79l8.6-47.12A16,16,0,0,0,222.37,158.46Z"></path></svg>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Phone</p>
-                                    <p id="display-phone" class="text-sm font-semibold text-slate-700">+1 (555) 000-0000</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Pure SVG Barcode -->
-                        <div class="mt-6 flex flex-col items-center">
-                            <svg width="180" height="40" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="180" height="40" fill="white"/>
-                                <path d="M10 0h4v40h-4zM18 0h2v40h-2zM24 0h6v40h-6zM34 0h2v40h-2zM40 0h8v40h-8zM52 0h2v40h-2zM58 0h4v40h-4zM66 0h2v40h-2zM72 0h6v40h-6zM82 0h2v40h-2zM88 0h4v40h-4zM96 0h6v40h-6zM106 0h2v40h-2zM112 0h4v40h-4zM120 0h8v40h-8zM132 0h2v40h-2zM138 0h6v40h-6zM148 0h2v40h-2zM154 0h4v40h-4zM162 0h8v40h-8z" fill="#0f172a"/>
-                            </svg>
-                            <p class="text-[9px] text-slate-400 mt-1 font-mono tracking-widest">A4-GEN-2026</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-4 text-center text-slate-500 w-full max-w-lg px-8">
-                    <h3 class="font-bold text-slate-700 mb-2 border-b border-slate-300 pb-2">Terms and Conditions</h3>
-                    <p class="text-xs leading-relaxed text-justify">
-                        This document serves as an official profile generated via the automated registration system. The badge presented above acts as temporary identification until a physical card is issued. Please verify all information presented. In case of any discrepancies, report immediately to the administration office. Keep this document secure as it contains personal identifying information.
-                    </p>
                 </div>
             </div>
 
+            <!-- Terms -->
+            <div class="absolute top-[240mm] w-full text-center px-[35mm]">
+                <h3 class="font-bold text-slate-800 text-[12pt] mb-2">Terms and Conditions</h3>
+                <p class="text-[9pt] leading-relaxed text-slate-500">
+                    This document serves as an official profile generated via the automated registration system. The badge presented above acts as temporary identification until a physical card is issued. Please verify all information presented. In case of any discrepancies, report immediately to the administration office. Keep this document secure as it contains personal identifying information.
+                </p>
+            </div>
+
             <!-- Footer -->
-            <footer class="bg-slate-100 text-slate-400 text-xs p-6 flex justify-between items-center border-t border-slate-200">
+            <div class="absolute bottom-[10mm] w-full px-[10mm] flex justify-between text-[8pt] text-slate-400">
                 <p>Generated on: <span id="current-date"></span></p>
-                <p>System Ref: <span class="font-mono">GH-PAGES-DEPLOY</span></p>
-            </footer>
+                <p>System Ref: <span class="font-mono">NATIVE-VECTOR-PDF</span></p>
+            </div>
         </div>
     </main>
 
     <!-- JavaScript Application Logic -->
     <script>
-        // Custom Toast System
+        // Global variables for the uploaded image data
+        window.uploadedImageBase64 = null;
+        window.uploadedImageType = null;
+
+        // Toast Notification System
         function showToast(message, type = 'error') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -242,12 +201,12 @@
             }, 4000);
         }
 
-        // Set Date
+        // Set current Date
         document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Data Binding
+        // Real-time Data Binding for HTML Preview
         const bindInput = (input, display, defaultText) => {
             document.getElementById(input).addEventListener('input', (e) => {
                 document.getElementById(display).textContent = e.target.value.trim() || defaultText;
@@ -257,7 +216,7 @@
         bindInput('input-phone', 'display-phone', '+1 (555) 000-0000');
         bindInput('input-class', 'display-class', 'Science 101');
 
-        // Safe Photo Upload (Base64 conversion)
+        // File Upload Handler (No Canvas, Just pure Data URL mapping)
         document.getElementById('input-photo').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -267,54 +226,172 @@
                 return;
             }
 
+            // Determine image type for jsPDF
+            window.uploadedImageType = file.type === 'image/png' ? 'PNG' : 'JPEG';
+
             const reader = new FileReader();
             reader.onload = function(event) {
+                // Store base64 for the PDF engine
+                window.uploadedImageBase64 = event.target.result;
+
+                // Update UI Preview
                 const img = document.getElementById('display-photo');
                 const placeholder = document.getElementById('photo-placeholder');
                 
-                img.src = event.target.result;
+                img.src = window.uploadedImageBase64;
                 img.classList.remove('hidden');
                 placeholder.classList.add('hidden');
+                
+                showToast('Photo uploaded successfully!', 'success');
             };
             reader.readAsDataURL(file);
         });
 
-        // Ultra-Robust PDF Generation
-        async function generatePDF() {
-            const element = document.getElementById('a4-document');
-            const btn = document.getElementById('download-btn');
-            const msg = document.getElementById('status-msg');
-            const userName = document.getElementById('input-name').value.trim() || 'Profile';
-            const safeFileName = userName.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_id_card.pdf';
-
-            // Loading state
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            msg.classList.remove('hidden');
-
-            // html2pdf Options optimized for zero-fail rendering
-            const opt = {
-                margin:       0,
-                filename:     safeFileName,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
+        // 🚀 THE VECTOR PDF ENGINE (Uses jsPDF directly for crisp text & perfect vectors)
+        function generateVectorPDF() {
             try {
-                // Wait for the Promise to resolve cleanly
-                await html2pdf().set(opt).from(element).save();
-                showToast('PDF downloaded successfully!', 'success');
+                // UI Loading state
+                const btn = document.getElementById('download-btn');
+                const msg = document.getElementById('status-msg');
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                msg.classList.remove('hidden');
+
+                // Initialize pure jsPDF document (A4 size in mm)
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                // Form Data
+                const name = document.getElementById('input-name').value.trim() || 'Jane Doe';
+                const phone = document.getElementById('input-phone').value.trim() || '+1 (555) 000-0000';
+                const classroom = document.getElementById('input-class').value.trim() || 'Science 101';
+                const dateStr = document.getElementById('current-date').textContent;
+
+                /* --- 1. DRAW HEADER --- */
+                doc.setFillColor(30, 64, 175); // bg-blue-800
+                doc.rect(0, 0, 210, 50, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(26);
+                doc.text("OFFICIAL PROFILE", 10, 25);
+                
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(14);
+                doc.setTextColor(191, 219, 254); // text-blue-200
+                doc.text("Standard Registration Document", 10, 35);
+
+                /* --- 2. DRAW MAIN BACKGROUND --- */
+                doc.setFillColor(248, 250, 252); // bg-slate-50
+                doc.rect(0, 50, 210, 247, 'F');
+
+                /* --- 3. DRAW THE ID CARD --- */
+                // Card Body
+                doc.setFillColor(255, 255, 255);
+                doc.setDrawColor(226, 232, 240); // border-slate-200
+                doc.roundedRect(50, 70, 110, 150, 2, 2, 'FD');
+
+                // Card Blue Top
+                doc.setFillColor(37, 99, 235); // bg-blue-600
+                doc.rect(50, 70, 110, 25, 'F');
+
+                // Avatar / Photo Setup
+                const imgCenterX = 105;
+                const imgCenterY = 95;
+                
+                if (window.uploadedImageBase64) {
+                    // Modern jsPDF perfect circular clip
+                    doc.saveGraphicsState();
+                    doc.circle(imgCenterX, imgCenterY, 20);
+                    doc.clip();
+                    doc.addImage(window.uploadedImageBase64, window.uploadedImageType, imgCenterX - 20, imgCenterY - 20, 40, 40);
+                    doc.restoreGraphicsState();
+                } else {
+                    // Blank Placeholder Circle
+                    doc.setFillColor(226, 232, 240);
+                    doc.circle(imgCenterX, imgCenterY, 20, 'F');
+                }
+
+                // Inner White Border for Avatar
+                doc.setDrawColor(255, 255, 255);
+                doc.setLineWidth(1.5);
+                doc.circle(imgCenterX, imgCenterY, 20);
+
+                // Name
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(30, 41, 59); // slate-800
+                doc.text(name.toUpperCase(), 105, 128, { align: 'center' });
+
+                // Subtitle
+                doc.setFontSize(9);
+                doc.setTextColor(37, 99, 235); // blue-600
+                doc.text("STUDENT ID BADGE", 105, 134, { align: 'center' });
+
+                // Divider Line
+                doc.setFillColor(219, 234, 254);
+                doc.rect(90, 138, 30, 0.5, 'F');
+
+                // Details Box
+                doc.setFillColor(248, 250, 252);
+                doc.setDrawColor(241, 245, 249);
+                doc.roundedRect(60, 142, 90, 40, 1.5, 1.5, 'FD');
+
+                // Details Content
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(148, 163, 184); // slate-400
+                doc.text("CLASSROOM", 65, 150);
+                
+                doc.setFontSize(11);
+                doc.setTextColor(51, 65, 85); // slate-700
+                doc.text(classroom, 65, 156);
+
+                doc.setFontSize(7);
+                doc.setTextColor(148, 163, 184);
+                doc.text("PHONE", 65, 168);
+                
+                doc.setFontSize(11);
+                doc.setTextColor(51, 65, 85);
+                doc.text(phone, 65, 174);
+
+                /* --- 4. DRAW TERMS TEXT --- */
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(51, 65, 85);
+                doc.text("Terms and Conditions", 105, 240, { align: 'center' });
+
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(100, 116, 139);
+                const termsText = "This document serves as an official profile generated via the automated registration system. The badge presented above acts as temporary identification until a physical card is issued. Please verify all information presented. In case of any discrepancies, report immediately to the administration office. Keep this document secure as it contains personal identifying information.";
+                const splitTerms = doc.splitTextToSize(termsText, 140);
+                doc.text(splitTerms, 105, 248, { align: 'center', lineHeightFactor: 1.5 });
+
+                /* --- 5. DRAW FOOTER --- */
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text("Generated on: " + dateStr, 10, 287);
+                doc.text("System Ref: NATIVE-VECTOR-PDF", 200, 287, { align: 'right' });
+
+                /* --- SAVE SECURELY --- */
+                const safeFileName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_vector_id.pdf';
+                doc.save(safeFileName);
+                
+                showToast('Vector PDF Downloaded Successfully!', 'success');
+
+                // Restore UI
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                msg.classList.add('hidden');
+
             } catch (err) {
-                console.error('PDF Generation Error:', err);
-                showToast('Failed to generate PDF. Please try again.', 'error');
-            } finally {
-                // Restore UI state
+                console.error("PDF engine error:", err);
+                showToast('Error generating PDF. Please try again.', 'error');
+                
+                // Restore UI
+                const btn = document.getElementById('download-btn');
+                const msg = document.getElementById('status-msg');
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 msg.classList.add('hidden');
