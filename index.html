@@ -73,9 +73,10 @@
                 print-color-adjust: exact !important;
             }
             
+            /* CRITICAL FIX FOR iOS SAFARI: Do NOT use !important here */
             @page { 
                 size: A4 portrait; 
-                margin: 0 !important; 
+                margin: 0; 
             }
             
             html, body { 
@@ -375,14 +376,22 @@
 
         // ==========================================
         // MOBILE FOOTER & HEADER ERASER TRICK
-        // Temporarily deletes the HTML title during print
+        // Temporarily deletes the HTML title & URL during print
         // ==========================================
         let originalTitle = document.title;
+        let originalUrl = window.location.href;
+        
         window.addEventListener('beforeprint', () => {
-            document.title = ''; 
+            // Set title to a blank space
+            document.title = ' '; 
+            // Temporarily replace URL to hide it from Safari's footer
+            window.history.replaceState(null, '', '#'); 
         });
+        
         window.addEventListener('afterprint', () => {
+            // Restore original title and URL
             document.title = originalTitle;
+            window.history.replaceState(null, '', originalUrl);
         });
 
         // ==========================================
@@ -435,5 +444,6 @@
     </script>
 </body>
 </html>
+
 
 
