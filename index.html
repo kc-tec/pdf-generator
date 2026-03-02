@@ -26,7 +26,7 @@
         /* A4 dimensions for screen preview */
         .a4-wrapper {
             width: 210mm; 
-            min-height: 297mm;
+            height: 297mm; /* Strictly A4 height */
             background-color: #ffffff;
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             position: relative;
@@ -36,6 +36,7 @@
             border: 1px solid #e2e8f0;
             transform-origin: top center;
             transition: transform 0.1s ease-out;
+            overflow: hidden; /* Prevents overflow */
         }
 
         /* Golden Decorative Border Pattern (Left Side) loading from local pattern.svg */
@@ -43,7 +44,7 @@
             background-color: #f3e5ab;
             background-image: url('pattern.svg'); /* Auto-loads pattern.svg from the same folder */
             background-repeat: repeat;
-            background-size: 40px; /* You can adjust this size based on your SVG */
+            background-size: 40px; 
             border-right: 3px solid #8b5a2b;
             border-left: 3px solid #8b5a2b;
         }
@@ -65,31 +66,52 @@
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
 
         /* =========================================================
-           PRINT ENGINE: Guarantees Vector Output
+           PRINT ENGINE: Guarantees Vector Output & 1 Page
            ========================================================= */
         @media print {
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            @page { size: A4 portrait; margin: 0; }
-            body { background-color: white !important; display: block !important; height: auto !important; }
-            aside, #toast-container, .mobile-only-header { display: none !important; }
+            
+            /* Setting margin to 0 automatically removes browser headers (date/title) and footers (url/page#) */
+            @page { 
+                size: A4 portrait; 
+                margin: 0 !important; 
+            }
+            
+            body { 
+                background-color: white !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            aside, #toast-container, .mobile-only-header { 
+                display: none !important; 
+            }
             
             main, #scale-wrapper {
                 background-color: white !important;
-                padding: 0 !important; margin: 0 !important;
+                padding: 0 !important; 
+                margin: 0 !important;
                 display: block !important;
-                width: 100% !important; height: 100% !important;
-                overflow: visible !important;
+                width: 100% !important; 
+                height: 100% !important;
             }
             
             .a4-wrapper {
-                box-shadow: none !important; border: none !important;
+                box-shadow: none !important; 
+                border: none !important;
                 margin: 0 !important;
-                width: 210mm !important; height: 297mm !important;
-                transform: none !important; /* Critical: removes mobile scaling on print */
-                page-break-after: avoid; page-break-inside: avoid;
+                padding: 0 !important;
+                width: 210mm !important; 
+                height: 297mm !important; /* Strict 1 page height */
+                max-height: 297mm !important;
+                transform: none !important; /* Removes mobile scaling on print */
+                overflow: hidden !important; /* Forces content to stay on page 1 */
+                page-break-after: avoid !important; 
+                page-break-before: avoid !important;
+                page-break-inside: avoid !important;
             }
         }
     </style>
@@ -193,6 +215,9 @@
                 <i class="ph-bold ph-printer text-xl"></i>
                 Save as PDF
             </button>
+            <p class="text-[10px] text-center text-slate-500 mt-2 leading-tight hidden lg:block">
+                Headers and footers are automatically removed.
+            </p>
         </div>
     </aside>
 
@@ -207,14 +232,12 @@
                 <!-- TOP HEADER -->
                 <header class="w-full pt-[15mm] pb-[5mm] px-[20mm] flex items-start justify-between">
                     
-                    <!-- Top Logo (Auto-loads logo.svg from folder) -->
-                    <div class="w-[28mm] h-[28mm] border-[1.5px] border-slate-800 rounded-full flex items-center justify-center p-1 relative bg-white">
-                        <div class="w-full h-full border-[1px] border-slate-800 rounded-full flex flex-col items-center justify-center bg-slate-50 overflow-hidden">
-                            <!-- Image tries to load logo.svg -->
-                            <img src="logo.svg" alt="Logo" class="w-full h-full object-contain absolute z-10" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <!-- Fallback text if logo.svg is missing -->
-                            <span class="text-[4px] mt-8 z-20 absolute bottom-3" style="display:none;">ក្រសួងអប់រំ</span>
-                        </div>
+                    <!-- Top Logo (Clean - No Borders/Circles) -->
+                    <div class="w-[30mm] h-[30mm] flex items-center justify-center relative bg-transparent">
+                        <!-- Image tries to load logo.svg -->
+                        <img src="logo.svg" alt="Logo" class="w-full h-full object-contain absolute z-10" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <!-- Fallback text if logo.svg is missing -->
+                        <span class="text-[8px] z-20 absolute text-center w-full" style="display:none;">ក្រសួងអប់រំ</span>
                     </div>
 
                     <!-- Center National Text -->
@@ -226,7 +249,7 @@
                         <div class="w-[20mm] h-[1px] bg-slate-800 mt-0.5"></div>
                     </div>
 
-                    <div class="w-[28mm]"></div>
+                    <div class="w-[30mm]"></div> <!-- Spacer to match logo width and center the text -->
                 </header>
 
                 <!-- Institute Name -->
