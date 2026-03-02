@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A4 Profile PDF Generator</title>
+    <title>A4 Profile PDF Generator (Khmer Supported)</title>
     
     <!-- Tailwind CSS for Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,7 +14,15 @@
     <!-- jsPDF for True Vector PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <!-- Import Khmer Font for the HTML Preview -->
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
+        /* Apply the Khmer font to the whole page */
+        body {
+            font-family: 'Battambang', sans-serif;
+        }
+
         /* A4 specific dimensions for exact visual mapping */
         .a4-wrapper {
             width: 210mm; 
@@ -24,7 +32,6 @@
             position: relative;
             overflow: hidden;
             flex-shrink: 0;
-            font-family: Helvetica, Arial, sans-serif;
         }
 
         /* Custom Scrollbar */
@@ -40,7 +47,7 @@
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col md:flex-row font-sans relative">
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col md:flex-row relative">
 
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
@@ -55,41 +62,40 @@
 
             <form id="profile-form" class="space-y-5" onsubmit="event.preventDefault();">
                 <div>
-                    <label for="input-name" class="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                    <label for="input-name" class="block text-sm font-semibold text-slate-700 mb-1">Full Name / ឈ្មោះ</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-user text-slate-400 text-lg"></i>
                         </div>
-                        <input type="text" id="input-name" placeholder="e.g. Jane Doe" 
+                        <input type="text" id="input-name" placeholder="ឧទាហរណ៍៖ សុខ សាន្ត" 
                             class="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                     </div>
                 </div>
 
                 <div>
-                    <label for="input-phone" class="block text-sm font-semibold text-slate-700 mb-1">Phone Number</label>
+                    <label for="input-phone" class="block text-sm font-semibold text-slate-700 mb-1">Phone Number / លេខទូរស័ព្ទ</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-phone text-slate-400 text-lg"></i>
                         </div>
-                        <input type="tel" id="input-phone" placeholder="e.g. +1 (555) 000-0000" 
+                        <input type="tel" id="input-phone" placeholder="e.g. 012 345 678" 
                             class="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                     </div>
                 </div>
 
                 <div>
-                    <label for="input-class" class="block text-sm font-semibold text-slate-700 mb-1">Classroom / Dept</label>
+                    <label for="input-class" class="block text-sm font-semibold text-slate-700 mb-1">Classroom / បន្ទប់</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="ph ph-chalkboard-teacher text-slate-400 text-lg"></i>
                         </div>
-                        <input type="text" id="input-class" placeholder="e.g. Science 101" 
+                        <input type="text" id="input-class" placeholder="e.g. វិទ្យាសាស្ត្រ ១០១" 
                             class="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">ID Photo</label>
-                    <!-- FIX: Pure HTML label mapping (No JS click triggers needed) -->
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">ID Photo / រូបថត</label>
                     <label for="input-photo" class="mt-1 block w-full px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 transition-colors bg-slate-50 cursor-pointer group">
                         <div class="space-y-1 text-center">
                             <i class="ph ph-image text-4xl text-slate-400 mx-auto group-hover:text-blue-500 transition-colors"></i>
@@ -107,9 +113,9 @@
         </div>
 
         <div class="p-6 border-t border-slate-200 bg-slate-50 mt-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
-            <button id="download-btn" onclick="generateVectorPDF()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all">
-                <i class="ph-bold ph-download-simple text-xl"></i>
-                Download Vector PDF
+            <button id="download-btn" onclick="generateVectorPDF()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all opacity-50 cursor-not-allowed" disabled>
+                <i class="ph ph-spinner-gap animate-spin text-xl" id="btn-icon"></i>
+                <span id="btn-text">Loading Fonts...</span>
             </button>
             <p id="status-msg" class="text-xs text-center text-blue-600 font-medium mt-3 hidden animate-pulse">
                 Generating Vector PDF...
@@ -125,7 +131,7 @@
             <!-- Header -->
             <div class="h-[50mm] bg-blue-800 text-white p-[10mm]">
                 <h1 class="text-[26pt] font-bold uppercase tracking-tight leading-none mt-2">Official Profile</h1>
-                <p class="text-[14pt] text-blue-200 mt-2">Standard Registration Document</p>
+                <p class="text-[14pt] text-blue-200 mt-2">ឯកសារចុះឈ្មោះផ្លូវការ</p>
             </div>
 
             <!-- ID Card Area -->
@@ -135,28 +141,26 @@
 
                 <!-- Avatar Photo -->
                 <div class="absolute top-[5mm] left-[35mm] w-[40mm] h-[40mm] rounded-full border-[1.5mm] border-white bg-slate-200 overflow-hidden shadow-sm flex items-center justify-center relative">
-                    <!-- Placeholder SVG -->
                     <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-20 h-20 text-slate-400 absolute">
                         <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>
                     </svg>
-                    <!-- Uploaded Image -->
                     <img id="display-photo" src="" alt="Profile" class="w-full h-full object-cover relative z-10 hidden">
                 </div>
 
                 <!-- Card Details -->
                 <div class="mt-[28mm] px-4 text-center flex flex-col items-center">
-                    <h2 id="display-name" class="text-[20pt] font-bold text-slate-800 uppercase tracking-wide leading-none">Jane Doe</h2>
-                    <p class="text-[9pt] font-bold text-blue-600 mt-2 uppercase tracking-wide">Student ID Badge</p>
+                    <h2 id="display-name" class="text-[18pt] font-bold text-slate-800 uppercase tracking-wide leading-none">សុខ សាន្ត</h2>
+                    <p class="text-[9pt] font-bold text-blue-600 mt-2 uppercase tracking-wide">កាតសម្គាល់ខ្លួន</p>
                     
                     <div class="w-[30mm] h-[0.5mm] bg-blue-100 mt-2 mb-3"></div>
 
                     <!-- Details Box -->
                     <div class="w-[90mm] h-[40mm] bg-slate-50 border border-slate-100 rounded text-left p-[5mm]">
-                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">CLASSROOM</p>
-                        <p id="display-class" class="text-[11pt] font-bold text-slate-700 mb-3 leading-tight">Science 101</p>
+                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">បន្ទប់ / CLASSROOM</p>
+                        <p id="display-class" class="text-[11pt] font-bold text-slate-700 mb-3 leading-tight">វិទ្យាសាស្ត្រ ១០១</p>
 
-                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">PHONE</p>
-                        <p id="display-phone" class="text-[11pt] font-bold text-slate-700 leading-tight">+1 (555) 000-0000</p>
+                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">ទូរស័ព្ទ / PHONE</p>
+                        <p id="display-phone" class="text-[11pt] font-bold text-slate-700 leading-tight">012 345 678</p>
                     </div>
                 </div>
             </div>
@@ -165,38 +169,36 @@
             <div class="absolute top-[240mm] w-full text-center px-[35mm]">
                 <h3 class="font-bold text-slate-800 text-[12pt] mb-2">Terms and Conditions</h3>
                 <p class="text-[9pt] leading-relaxed text-slate-500">
-                    This document serves as an official profile generated via the automated registration system. The badge presented above acts as temporary identification until a physical card is issued. Please verify all information presented. In case of any discrepancies, report immediately to the administration office. Keep this document secure as it contains personal identifying information.
+                    ឯកសារនេះបម្រើជាទម្រង់ផ្លូវការដែលបានបង្កើតតាមរយៈប្រព័ន្ធចុះឈ្មោះដោយស្វ័យប្រវត្តិ។ កាតសម្គាល់ខាងលើដើរតួជាការកំណត់អត្តសញ្ញាណបណ្ដោះអាសន្នរហូតដល់កាតពិតប្រាកដត្រូវបានចេញ។ សូមរក្សាទុកឯកសារនេះដោយសុវត្ថិភាព ព្រោះវាមានព័ត៌មានផ្ទាល់ខ្លួន។
                 </p>
             </div>
 
             <!-- Footer -->
             <div class="absolute bottom-[10mm] w-full px-[10mm] flex justify-between text-[8pt] text-slate-400">
                 <p>Generated on: <span id="current-date"></span></p>
-                <p>System Ref: <span class="font-mono">NATIVE-VECTOR-PDF</span></p>
+                <p>System Ref: <span class="font-mono">KHMER-VECTOR-PDF</span></p>
             </div>
         </div>
     </main>
 
     <!-- JavaScript Application Logic -->
     <script>
-        // Global variables for the uploaded image data
+        // Global variables for fonts and images
         window.uploadedImageBase64 = null;
         window.uploadedImageType = null;
+        window.khmerFonts = { regular: null, bold: null };
 
         // Toast Notification System
         function showToast(message, type = 'error') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            
             const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
             toast.className = `toast-enter flex items-center gap-3 ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg max-w-sm`;
             toast.innerHTML = `<p class="text-sm font-medium">${message}</p>`;
-
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(100%)';
-                toast.style.transition = 'all 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
         }
@@ -206,93 +208,140 @@
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Real-time Data Binding for HTML Preview
+        // Background loading of Khmer TTF Fonts directly from Google's Open Source CDN
+        async function loadKhmerFonts() {
+            try {
+                // Fetch Battambang Regular & Bold TTF files securely
+                const [regResponse, boldResponse] = await Promise.all([
+                    fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/battambang/Battambang-Regular.ttf'),
+                    fetch('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/battambang/Battambang-Bold.ttf')
+                ]);
+
+                if (!regResponse.ok || !boldResponse.ok) throw new Error("Network response was not ok");
+
+                const regBuffer = await regResponse.arrayBuffer();
+                const boldBuffer = await boldResponse.arrayBuffer();
+
+                // Convert ArrayBuffer to Base64 (Required by jsPDF)
+                const arrayBufferToBase64 = (buffer) => {
+                    let binary = '';
+                    const bytes = new Uint8Array(buffer);
+                    const len = bytes.byteLength;
+                    for (let i = 0; i < len; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return window.btoa(binary);
+                };
+
+                window.khmerFonts.regular = arrayBufferToBase64(regBuffer);
+                window.khmerFonts.bold = arrayBufferToBase64(boldBuffer);
+                
+                // Enable Download Button
+                const btn = document.getElementById('download-btn');
+                const btnIcon = document.getElementById('btn-icon');
+                const btnText = document.getElementById('btn-text');
+                
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnIcon.className = "ph-bold ph-download-simple text-xl";
+                btnText.textContent = "Download Vector PDF";
+                
+                console.log("Khmer Vector Fonts Ready!");
+            } catch (error) {
+                console.error("Failed to load Khmer fonts:", error);
+                showToast("Network error loading Khmer fonts. Refresh the page.", "error");
+            }
+        }
+
+        // Initialize font loader
+        window.addEventListener('DOMContentLoaded', loadKhmerFonts);
+
+        // Real-time Data Binding
         const bindInput = (input, display, defaultText) => {
             document.getElementById(input).addEventListener('input', (e) => {
                 document.getElementById(display).textContent = e.target.value.trim() || defaultText;
             });
         };
-        bindInput('input-name', 'display-name', 'Jane Doe');
-        bindInput('input-phone', 'display-phone', '+1 (555) 000-0000');
-        bindInput('input-class', 'display-class', 'Science 101');
+        bindInput('input-name', 'display-name', 'សុខ សាន្ត');
+        bindInput('input-phone', 'display-phone', '012 345 678');
+        bindInput('input-class', 'display-class', 'វិទ្យាសាស្ត្រ ១០១');
 
         // File Upload Handler (No Canvas, Just pure Data URL mapping)
         document.getElementById('input-photo').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             if (!file.type.startsWith('image/')) {
                 showToast('Please upload a valid image file.', 'error');
                 return;
             }
 
-            // Determine image type for jsPDF
             window.uploadedImageType = file.type === 'image/png' ? 'PNG' : 'JPEG';
 
             const reader = new FileReader();
             reader.onload = function(event) {
-                // Store base64 for the PDF engine
                 window.uploadedImageBase64 = event.target.result;
-
-                // Update UI Preview
                 const img = document.getElementById('display-photo');
                 const placeholder = document.getElementById('photo-placeholder');
                 
                 img.src = window.uploadedImageBase64;
                 img.classList.remove('hidden');
                 placeholder.classList.add('hidden');
-                
-                showToast('Photo uploaded successfully!', 'success');
             };
             reader.readAsDataURL(file);
         });
 
-        // 🚀 THE VECTOR PDF ENGINE (Uses jsPDF directly for crisp text & perfect vectors)
+        // 🚀 THE VECTOR PDF ENGINE (Now with Native Khmer Font Support)
         function generateVectorPDF() {
             try {
-                // UI Loading state
                 const btn = document.getElementById('download-btn');
                 const msg = document.getElementById('status-msg');
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
                 msg.classList.remove('hidden');
 
-                // Initialize pure jsPDF document (A4 size in mm)
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
+                // INJECT KHMER FONT INTO jsPDF VIRTUAL FILE SYSTEM
+                const fontName = "Battambang";
+                if (window.khmerFonts.regular && window.khmerFonts.bold) {
+                    doc.addFileToVFS("Battambang-Regular.ttf", window.khmerFonts.regular);
+                    doc.addFont("Battambang-Regular.ttf", fontName, "normal");
+
+                    doc.addFileToVFS("Battambang-Bold.ttf", window.khmerFonts.bold);
+                    doc.addFont("Battambang-Bold.ttf", fontName, "bold");
+                }
+
                 // Form Data
-                const name = document.getElementById('input-name').value.trim() || 'Jane Doe';
-                const phone = document.getElementById('input-phone').value.trim() || '+1 (555) 000-0000';
-                const classroom = document.getElementById('input-class').value.trim() || 'Science 101';
+                const name = document.getElementById('input-name').value.trim() || 'សុខ សាន្ត';
+                const phone = document.getElementById('input-phone').value.trim() || '012 345 678';
+                const classroom = document.getElementById('input-class').value.trim() || 'វិទ្យាសាស្ត្រ ១០១';
                 const dateStr = document.getElementById('current-date').textContent;
 
                 /* --- 1. DRAW HEADER --- */
-                doc.setFillColor(30, 64, 175); // bg-blue-800
+                doc.setFillColor(30, 64, 175); 
                 doc.rect(0, 0, 210, 50, 'F');
                 
                 doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
+                doc.setFont(fontName, 'bold');
                 doc.setFontSize(26);
-                doc.text("OFFICIAL PROFILE", 10, 25);
+                doc.text("Official Profile", 10, 25);
                 
-                doc.setFont('helvetica', 'normal');
+                doc.setFont(fontName, 'normal');
                 doc.setFontSize(14);
-                doc.setTextColor(191, 219, 254); // text-blue-200
-                doc.text("Standard Registration Document", 10, 35);
+                doc.setTextColor(191, 219, 254);
+                doc.text("ឯកសារចុះឈ្មោះផ្លូវការ", 10, 35);
 
                 /* --- 2. DRAW MAIN BACKGROUND --- */
-                doc.setFillColor(248, 250, 252); // bg-slate-50
+                doc.setFillColor(248, 250, 252); 
                 doc.rect(0, 50, 210, 247, 'F');
 
                 /* --- 3. DRAW THE ID CARD --- */
-                // Card Body
                 doc.setFillColor(255, 255, 255);
-                doc.setDrawColor(226, 232, 240); // border-slate-200
+                doc.setDrawColor(226, 232, 240); 
                 doc.roundedRect(50, 70, 110, 150, 2, 2, 'FD');
 
-                // Card Blue Top
-                doc.setFillColor(37, 99, 235); // bg-blue-600
+                doc.setFillColor(37, 99, 235); 
                 doc.rect(50, 70, 110, 25, 'F');
 
                 // Avatar / Photo Setup
@@ -300,33 +349,31 @@
                 const imgCenterY = 95;
                 
                 if (window.uploadedImageBase64) {
-                    // Modern jsPDF perfect circular clip
                     doc.saveGraphicsState();
                     doc.circle(imgCenterX, imgCenterY, 20);
                     doc.clip();
                     doc.addImage(window.uploadedImageBase64, window.uploadedImageType, imgCenterX - 20, imgCenterY - 20, 40, 40);
                     doc.restoreGraphicsState();
                 } else {
-                    // Blank Placeholder Circle
                     doc.setFillColor(226, 232, 240);
                     doc.circle(imgCenterX, imgCenterY, 20, 'F');
                 }
 
-                // Inner White Border for Avatar
+                // Inner Border
                 doc.setDrawColor(255, 255, 255);
                 doc.setLineWidth(1.5);
                 doc.circle(imgCenterX, imgCenterY, 20);
 
                 // Name
                 doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(30, 41, 59); // slate-800
-                doc.text(name.toUpperCase(), 105, 128, { align: 'center' });
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(30, 41, 59); 
+                doc.text(name, 105, 128, { align: 'center' });
 
                 // Subtitle
                 doc.setFontSize(9);
-                doc.setTextColor(37, 99, 235); // blue-600
-                doc.text("STUDENT ID BADGE", 105, 134, { align: 'center' });
+                doc.setTextColor(37, 99, 235); 
+                doc.text("កាតសម្គាល់ខ្លួន", 105, 134, { align: 'center' });
 
                 // Divider Line
                 doc.setFillColor(219, 234, 254);
@@ -339,17 +386,17 @@
 
                 // Details Content
                 doc.setFontSize(7);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(148, 163, 184); // slate-400
-                doc.text("CLASSROOM", 65, 150);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(148, 163, 184);
+                doc.text("បន្ទប់ / CLASSROOM", 65, 150);
                 
                 doc.setFontSize(11);
-                doc.setTextColor(51, 65, 85); // slate-700
+                doc.setTextColor(51, 65, 85); 
                 doc.text(classroom, 65, 156);
 
                 doc.setFontSize(7);
                 doc.setTextColor(148, 163, 184);
-                doc.text("PHONE", 65, 168);
+                doc.text("ទូរស័ព្ទ / PHONE", 65, 168);
                 
                 doc.setFontSize(11);
                 doc.setTextColor(51, 65, 85);
@@ -357,14 +404,16 @@
 
                 /* --- 4. DRAW TERMS TEXT --- */
                 doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
+                doc.setFont(fontName, 'bold');
                 doc.setTextColor(51, 65, 85);
                 doc.text("Terms and Conditions", 105, 240, { align: 'center' });
 
                 doc.setFontSize(9);
-                doc.setFont('helvetica', 'normal');
+                doc.setFont(fontName, 'normal');
                 doc.setTextColor(100, 116, 139);
-                const termsText = "This document serves as an official profile generated via the automated registration system. The badge presented above acts as temporary identification until a physical card is issued. Please verify all information presented. In case of any discrepancies, report immediately to the administration office. Keep this document secure as it contains personal identifying information.";
+                
+                // Khmer Text split logic
+                const termsText = "ឯកសារនេះបម្រើជាទម្រង់ផ្លូវការដែលបានបង្កើតតាមរយៈប្រព័ន្ធចុះឈ្មោះដោយស្វ័យប្រវត្តិ។ កាតសម្គាល់ខាងលើដើរតួជាការកំណត់អត្តសញ្ញាណបណ្ដោះអាសន្នរហូតដល់កាតពិតប្រាកដត្រូវបានចេញ។ សូមរក្សាទុកឯកសារនេះដោយសុវត្ថិភាព ព្រោះវាមានព័ត៌មានផ្ទាល់ខ្លួន។";
                 const splitTerms = doc.splitTextToSize(termsText, 140);
                 doc.text(splitTerms, 105, 248, { align: 'center', lineHeightFactor: 1.5 });
 
@@ -372,15 +421,12 @@
                 doc.setFontSize(8);
                 doc.setTextColor(148, 163, 184);
                 doc.text("Generated on: " + dateStr, 10, 287);
-                doc.text("System Ref: NATIVE-VECTOR-PDF", 200, 287, { align: 'right' });
+                doc.text("System Ref: KHMER-VECTOR-PDF", 200, 287, { align: 'right' });
 
                 /* --- SAVE SECURELY --- */
-                const safeFileName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_vector_id.pdf';
-                doc.save(safeFileName);
+                doc.save('profile_document.pdf');
                 
                 showToast('Vector PDF Downloaded Successfully!', 'success');
-
-                // Restore UI
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 msg.classList.add('hidden');
@@ -389,7 +435,6 @@
                 console.error("PDF engine error:", err);
                 showToast('Error generating PDF. Please try again.', 'error');
                 
-                // Restore UI
                 const btn = document.getElementById('download-btn');
                 const msg = document.getElementById('status-msg');
                 btn.disabled = false;
