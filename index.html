@@ -36,13 +36,13 @@
             border: 1px solid #e2e8f0;
             transform-origin: top center;
             transition: transform 0.1s ease-out;
-            overflow: hidden; /* Prevents overflow */
+            overflow: hidden;
         }
 
-        /* Golden Decorative Border Pattern (Left Side) loading from local pattern.svg */
+        /* Golden Decorative Border Pattern */
         .khmer-border-pattern {
             background-color: #f3e5ab;
-            background-image: url('pattern.svg'); /* Auto-loads pattern.svg from the same folder */
+            background-image: url('pattern.svg'); /* Auto-loads pattern.svg */
             background-repeat: repeat;
             background-size: 40px; 
             border-right: 3px solid #8b5a2b;
@@ -58,7 +58,6 @@
             text-shadow: 1px 1px 0px #94a3b8, 2px 2px 0px #cbd5e1;
         }
 
-        /* Toast Animation */
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -66,7 +65,7 @@
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
 
         /* =========================================================
-           PRINT ENGINE: Guarantees Vector Output & 1 Page
+           PRINT ENGINE: Aggressive 1-Page Mobile Footer Eraser
            ========================================================= */
         @media print {
             * {
@@ -74,19 +73,21 @@
                 print-color-adjust: exact !important;
             }
             
-            /* Setting margin to 0 automatically removes browser headers (date/title) and footers (url/page#) */
             @page { 
                 size: A4 portrait; 
                 margin: 0 !important; 
             }
             
-            body { 
+            html, body { 
                 background-color: white !important; 
                 margin: 0 !important;
                 padding: 0 !important;
+                width: 210mm !important;
+                height: 297mm !important;
             }
             
-            aside, #toast-container, .mobile-only-header { 
+            /* Hide ALL UI elements including the mobile floating header */
+            aside, #toast-container, #mobile-header { 
                 display: none !important; 
             }
             
@@ -95,6 +96,9 @@
                 padding: 0 !important; 
                 margin: 0 !important;
                 display: block !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
                 width: 100% !important; 
                 height: 100% !important;
             }
@@ -105,10 +109,13 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 width: 210mm !important; 
-                height: 297mm !important; /* Strict 1 page height */
+                height: 297mm !important; 
                 max-height: 297mm !important;
-                transform: none !important; /* Removes mobile scaling on print */
-                overflow: hidden !important; /* Forces content to stay on page 1 */
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                transform: none !important; 
+                overflow: hidden !important; 
                 page-break-after: avoid !important; 
                 page-break-before: avoid !important;
                 page-break-inside: avoid !important;
@@ -121,8 +128,8 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 font-sans"></div>
 
-    <!-- Mobile Top Header -->
-    <div class="lg:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-40 shadow-sm flex items-center justify-between font-sans">
+    <!-- Mobile Top Header (Now with ID to hide during print) -->
+    <div id="mobile-header" class="lg:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-40 shadow-sm flex items-center justify-between font-sans">
         <div class="flex items-center gap-2">
             <i class="ph-fill ph-file-pdf text-3xl text-blue-700"></i>
             <div>
@@ -146,7 +153,6 @@
             </div>
 
             <form id="profile-form" class="space-y-4" onsubmit="event.preventDefault();">
-                
                 <div>
                     <label class="block text-xs text-slate-700 mb-1">កម្មសិក្សាការី / Intern Name</label>
                     <input type="text" id="input-name" value="សុខ ចាន់ត្រា" 
@@ -197,7 +203,7 @@
                         class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
                 </div>
 
-                <!-- Custom Graphic Upload (Only Photo) -->
+                <!-- Custom Graphic Upload -->
                 <div class="border-t border-slate-200 pt-4 mt-2">
                     <label class="block text-xs text-slate-700 mb-1">រូបថត / ID Photo</label>
                     <label for="input-photo" class="flex flex-col items-center justify-center p-4 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all bg-slate-50 cursor-pointer active:scale-[0.98] font-sans">
@@ -215,9 +221,6 @@
                 <i class="ph-bold ph-printer text-xl"></i>
                 Save as PDF
             </button>
-            <p class="text-[10px] text-center text-slate-500 mt-2 leading-tight hidden lg:block">
-                Headers and footers are automatically removed.
-            </p>
         </div>
     </aside>
 
@@ -234,9 +237,7 @@
                     
                     <!-- Top Logo (Clean - No Borders/Circles) -->
                     <div class="w-[30mm] h-[30mm] flex items-center justify-center relative bg-transparent">
-                        <!-- Image tries to load logo.svg -->
                         <img src="logo.svg" alt="Logo" class="w-full h-full object-contain absolute z-10" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <!-- Fallback text if logo.svg is missing -->
                         <span class="text-[8px] z-20 absolute text-center w-full" style="display:none;">ក្រសួងអប់រំ</span>
                     </div>
 
@@ -249,7 +250,7 @@
                         <div class="w-[20mm] h-[1px] bg-slate-800 mt-0.5"></div>
                     </div>
 
-                    <div class="w-[30mm]"></div> <!-- Spacer to match logo width and center the text -->
+                    <div class="w-[30mm]"></div>
                 </header>
 
                 <!-- Institute Name -->
@@ -262,13 +263,12 @@
                 <!-- MAIN CONTENT AREA -->
                 <div class="flex-1 flex w-full h-full relative">
                     
-                    <!-- Decorative Border (Auto-loads pattern.svg via CSS class) -->
+                    <!-- Decorative Border -->
                     <div class="w-[38mm] h-full khmer-border-pattern flex-shrink-0 ml-[5mm]"></div>
 
                     <!-- Right Side Content Data -->
                     <div class="flex-1 flex flex-col items-center pt-[15mm] px-[15mm]">
                         
-                        <!-- Title -->
                         <h1 class="text-[22pt] text-slate-800 title-shadow tracking-widest mb-[10mm]">កំណត់ត្រាកម្មសិក្សា</h1>
 
                         <!-- Instructor Info Block -->
@@ -293,7 +293,6 @@
 
                         <!-- Portrait Photo -->
                         <div class="mt-[12mm] mb-[12mm] w-[45mm] h-[60mm] border-2 border-slate-300 bg-blue-50 shadow-sm flex items-center justify-center overflow-hidden relative">
-                            <!-- Placeholder Icon -->
                             <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-16 h-16 text-slate-300 absolute font-sans">
                                 <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>
                             </svg>
@@ -373,6 +372,18 @@
         window.addEventListener('resize', adjustA4Scale);
         window.addEventListener('orientationchange', () => setTimeout(adjustA4Scale, 100));
         window.addEventListener('DOMContentLoaded', adjustA4Scale);
+
+        // ==========================================
+        // MOBILE FOOTER & HEADER ERASER TRICK
+        // Temporarily deletes the HTML title during print
+        // ==========================================
+        let originalTitle = document.title;
+        window.addEventListener('beforeprint', () => {
+            document.title = ''; 
+        });
+        window.addEventListener('afterprint', () => {
+            document.title = originalTitle;
+        });
 
         // ==========================================
         // TEXT DATA BINDING
