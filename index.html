@@ -1,41 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="km">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A4 Vector PDF Generator (Native Khmer Support)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>កំណត់ត្រាកម្មសិក្សា - Internship Record Generator</title>
     
-    <!-- Tailwind CSS for Styling -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Phosphor Icons for the UI -->
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- Import Khmer Font (Battambang) -->
-    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Official Khmer Fonts: Battambang (Form) & Moul (PDF) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&display=swap" rel="stylesheet">
 
     <style>
-        /* Apply the Khmer font globally */
-        body {
-            font-family: 'Battambang', sans-serif;
-        }
+        /* Base typography for the UI (Form) */
+        body { font-family: 'Battambang', sans-serif; }
+
+        /* Typography specifically for the PDF document */
+        .pdf-document { font-family: 'Moul', cursive; }
 
         /* A4 dimensions for screen preview */
         .a4-wrapper {
             width: 210mm; 
             min-height: 297mm;
-            background-color: #f8fafc;
+            background-color: #ffffff;
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             position: relative;
-            overflow: hidden;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e2e8f0;
+            transform-origin: top center;
+            transition: transform 0.1s ease-out;
+        }
+
+        /* Golden Decorative Border Pattern (Left Side) loading from local pattern.svg */
+        .khmer-border-pattern {
+            background-color: #f3e5ab;
+            background-image: url('pattern.svg'); /* Auto-loads pattern.svg from the same folder */
+            background-repeat: repeat;
+            background-size: 40px; /* You can adjust this size based on your SVG */
+            border-right: 3px solid #8b5a2b;
+            border-left: 3px solid #8b5a2b;
         }
 
         /* Custom Scrollbar */
-        .preview-container::-webkit-scrollbar { width: 8px; height: 8px; }
-        .preview-container::-webkit-scrollbar-track { background: #f1f5f9; }
-        .preview-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
+        .title-shadow {
+            text-shadow: 1px 1px 0px #94a3b8, 2px 2px 0px #cbd5e1;
+        }
+
+        /* Toast Animation */
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -43,192 +65,244 @@
         .toast-enter { animation: slideIn 0.3s ease-out forwards; }
 
         /* =========================================================
-           PRINT ENGINE: This turns the browser into a PDF generator
+           PRINT ENGINE: Guarantees Vector Output
            ========================================================= */
         @media print {
-            /* Force the browser to print background colors and images */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-
-            /* Set page to exactly A4 without any browser margins/headers */
-            @page {
-                size: A4 portrait;
-                margin: 0;
-            }
-
-            /* Hide the UI sidebar and body background */
-            body {
+            @page { size: A4 portrait; margin: 0; }
+            body { background-color: white !important; display: block !important; height: auto !important; }
+            aside, #toast-container, .mobile-only-header { display: none !important; }
+            
+            main, #scale-wrapper {
                 background-color: white !important;
-            }
-            aside, #toast-container {
-                display: none !important;
-            }
-
-            /* Reset the main container to take over the whole screen */
-            main {
-                background-color: white !important;
-                padding: 0 !important;
-                margin: 0 !important;
+                padding: 0 !important; margin: 0 !important;
                 display: block !important;
-                width: 100% !important;
-                height: 100% !important;
+                width: 100% !important; height: 100% !important;
                 overflow: visible !important;
             }
-
-            /* Strip shadow and center exactly on the printable page */
+            
             .a4-wrapper {
-                box-shadow: none !important;
+                box-shadow: none !important; border: none !important;
                 margin: 0 !important;
-                width: 210mm !important;
-                height: 297mm !important;
-                page-break-after: avoid;
-                page-break-inside: avoid;
+                width: 210mm !important; height: 297mm !important;
+                transform: none !important; /* Critical: removes mobile scaling on print */
+                page-break-after: avoid; page-break-inside: avoid;
             }
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col md:flex-row relative">
+<body class="bg-slate-50 text-slate-800 h-auto lg:h-screen flex flex-col lg:flex-row relative custom-scrollbar">
 
     <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 font-sans"></div>
 
-    <!-- Left Panel: Input Form (HIDDEN DURING PDF EXPORT) -->
-    <aside class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-slate-200 shadow-sm z-10 flex flex-col h-[50vh] md:h-screen overflow-y-auto">
-        <div class="p-6 flex-grow">
-            <div class="flex items-center gap-3 mb-8">
-                <i class="ph-fill ph-file-pdf text-4xl text-blue-600"></i>
+    <!-- Mobile Top Header -->
+    <div class="lg:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-40 shadow-sm flex items-center justify-between font-sans">
+        <div class="flex items-center gap-2">
+            <i class="ph-fill ph-file-pdf text-3xl text-blue-700"></i>
+            <div>
+                <h1 class="text-base font-bold text-slate-900 leading-tight">Document Generator</h1>
+                <p class="text-[10px] text-green-600 font-bold tracking-wide uppercase">Native Khmer</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Left Panel: Input Form (Uses Battambang) -->
+    <aside class="w-full lg:w-1/3 xl:w-1/4 bg-white border-r border-slate-200 z-10 flex flex-col lg:h-screen lg:overflow-y-auto custom-scrollbar relative">
+        <div class="p-4 lg:p-6 flex-grow pb-24 lg:pb-6">
+            
+            <!-- Desktop Header -->
+            <div class="hidden lg:flex items-center gap-3 mb-6 border-b border-slate-100 pb-4 font-sans">
+                <i class="ph-fill ph-file-pdf text-4xl text-blue-700"></i>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900 leading-tight">Native Vector PDF</h1>
-                    <p class="text-xs text-green-600 font-bold tracking-wide uppercase">Khmer Supported</p>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">Document Generator</h1>
+                    <p class="text-[10px] text-green-600 font-bold tracking-wide uppercase">Moul & Battambang Fonts</p>
                 </div>
             </div>
 
-            <form id="profile-form" class="space-y-5" onsubmit="event.preventDefault();">
+            <form id="profile-form" class="space-y-4" onsubmit="event.preventDefault();">
+                
                 <div>
-                    <label for="input-name" class="block text-sm font-semibold text-slate-700 mb-1">Full Name / ឈ្មោះ</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="ph ph-user text-slate-400 text-lg"></i>
-                        </div>
-                        <input type="text" id="input-name" placeholder="ឧទាហរណ៍៖ សុខ សាន្ត" 
-                            class="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <label class="block text-xs text-slate-700 mb-1">កម្មសិក្សាការី / Intern Name</label>
+                    <input type="text" id="input-name" value="សុខ ចាន់ត្រា" 
+                        class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-700 mb-1">មណ្ឌលកម្មសិក្សា / Center</label>
+                    <input type="text" id="input-center" value="បឋមសិក្សាភូមិឫស្សី" 
+                        class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-700 mb-1">គ្រូឧទ្ទេសដឹកនាំ / Lead Instructor</label>
+                        <input type="text" id="input-lead" value="លោក ហៃ ម៉ារីត" 
+                            class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-700 mb-1">គ្រូណែនាំ / Guide Teacher</label>
+                        <input type="text" id="input-guide" value="លោកស្រី ស៊ឹម សុម៉ាឡា" 
+                            class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-700 mb-1">ថ្នាក់ទី / Grade</label>
+                        <input type="text" id="input-grade" value="៤.ក" 
+                            class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-700 mb-1">ឆ្នាំសិក្សា / Year</label>
+                        <input type="text" id="input-year" value="២០២៤-២០២៥ និង ២០២៥-២០២៦" 
+                            class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
                     </div>
                 </div>
 
                 <div>
-                    <label for="input-phone" class="block text-sm font-semibold text-slate-700 mb-1">Phone Number / លេខទូរស័ព្ទ</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="ph ph-phone text-slate-400 text-lg"></i>
-                        </div>
-                        <input type="tel" id="input-phone" placeholder="e.g. 012 345 678" 
-                            class="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
+                    <label class="block text-xs text-slate-700 mb-1">កម្រិតសិក្សា / Education Level</label>
+                    <textarea id="input-level" rows="2" class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors leading-relaxed">បរិញ្ញាបត្រអប់រំ ជំនាញគ្រូបង្រៀន កម្រិតបឋមសិក្សា
+(១២+៤)</textarea>
                 </div>
 
                 <div>
-                    <label for="input-class" class="block text-sm font-semibold text-slate-700 mb-1">Classroom / បន្ទប់</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="ph ph-chalkboard-teacher text-slate-400 text-lg"></i>
-                        </div>
-                        <input type="text" id="input-class" placeholder="e.g. វិទ្យាសាស្ត្រ ១០១" 
-                            class="pl-10 w-full rounded-lg border border-slate-300 py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
+                    <label class="block text-xs text-slate-700 mb-1">ជំនាន់ / Generation</label>
+                    <input type="text" id="input-gen" value="ជំនាន់ទី៤ ឆ្នាំទី២ ក្រុមទី៤" 
+                        class="w-full rounded border border-slate-300 py-3 lg:py-2 px-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
                 </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">ID Photo / រូបថត</label>
-                    <label for="input-photo" class="mt-1 block w-full px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 transition-colors bg-slate-50 cursor-pointer group">
-                        <div class="space-y-1 text-center">
-                            <i class="ph ph-image text-4xl text-slate-400 mx-auto group-hover:text-blue-500 transition-colors"></i>
-                            <div class="flex text-sm text-slate-600 justify-center">
-                                <span class="relative bg-transparent rounded-md font-medium text-blue-600 hover:text-blue-500">
-                                    Click to upload photo
-                                </span>
-                                <input id="input-photo" type="file" accept="image/png, image/jpeg, image/jpg" class="sr-only">
-                            </div>
-                            <p class="text-xs text-slate-500">PNG or JPG</p>
-                        </div>
+                <!-- Custom Graphic Upload (Only Photo) -->
+                <div class="border-t border-slate-200 pt-4 mt-2">
+                    <label class="block text-xs text-slate-700 mb-1">រូបថត / ID Photo</label>
+                    <label for="input-photo" class="flex flex-col items-center justify-center p-4 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all bg-slate-50 cursor-pointer active:scale-[0.98] font-sans">
+                        <i class="ph ph-user-square text-3xl text-slate-400"></i>
+                        <span class="text-xs text-blue-600 mt-2 font-bold">Upload Portrait Photo</span>
+                        <input id="input-photo" type="file" accept="image/png, image/jpeg, image/jpg" class="sr-only">
                     </label>
                 </div>
             </form>
         </div>
 
-        <div class="p-6 border-t border-slate-200 bg-slate-50 mt-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
-            <button onclick="window.print()" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+        <!-- Sticky Footer -->
+        <div class="fixed lg:sticky bottom-0 left-0 w-full lg:w-auto p-4 border-t border-slate-200 bg-white/95 backdrop-blur-sm shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] lg:shadow-none z-30 font-sans">
+            <button onclick="window.print()" class="w-full flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 lg:py-3 px-4 rounded-lg shadow-md transition-all active:scale-[0.98]">
                 <i class="ph-bold ph-printer text-xl"></i>
                 Save as PDF
             </button>
-            <p class="text-xs text-center text-slate-500 mt-3 leading-tight">
-                Select <strong>"Save as PDF"</strong> in the dialog box.<br>This ensures perfect Khmer text shaping.
-            </p>
         </div>
     </aside>
 
-    <!-- Right Panel: Live A4 Visual Preview & PDF Target -->
-    <main class="w-full md:w-2/3 lg:w-3/4 bg-slate-300 h-[50vh] md:h-screen preview-container overflow-auto relative p-4 md:p-8 flex justify-center items-start">
+    <!-- Right Panel: Live A4 Visual Preview -->
+    <main class="w-full lg:w-2/3 xl:w-3/4 bg-slate-200 lg:h-screen lg:overflow-y-auto p-2 sm:p-4 lg:p-8 flex justify-center items-start custom-scrollbar mb-20 lg:mb-0">
         
-        <!-- THE EXACT A4 DOCUMENT -->
-        <div class="a4-wrapper">
-            <!-- Header -->
-            <div class="h-[50mm] bg-blue-800 text-white p-[10mm] relative overflow-hidden">
-                <!-- Decorative Circle -->
-                <div class="absolute -right-10 -top-10 w-64 h-64 bg-blue-700 rounded-full opacity-50"></div>
+        <div id="scale-wrapper" class="w-full flex justify-center origin-top">
+            
+            <!-- THE EXACT A4 DOCUMENT (Uses Moul Font) -->
+            <div id="a4-wrapper" class="a4-wrapper pdf-document bg-white text-slate-900 shadow-xl">
                 
-                <div class="relative z-10">
-                    <h1 class="text-[26pt] font-bold uppercase tracking-tight leading-none mt-2">Official Profile</h1>
-                    <p class="text-[14pt] text-blue-200 mt-2">ឯកសារចុះឈ្មោះផ្លូវការ</p>
-                </div>
-            </div>
-
-            <!-- ID Card Area -->
-            <div class="absolute top-[70mm] left-[50mm] w-[110mm] h-[150mm] bg-white rounded-md shadow-xl border border-slate-200">
-                <!-- Card Blue Top -->
-                <div class="h-[25mm] bg-blue-600 w-full rounded-t-md"></div>
-
-                <!-- Avatar Photo -->
-                <div class="absolute top-[5mm] left-[35mm] w-[40mm] h-[40mm] rounded-full border-[1.5mm] border-white bg-slate-200 overflow-hidden shadow-sm flex items-center justify-center relative">
-                    <!-- SVG Placeholder -->
-                    <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-20 h-20 text-slate-400 absolute">
-                        <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>
-                    </svg>
-                    <!-- Uploaded Image -->
-                    <img id="display-photo" src="" alt="Profile" class="w-full h-full object-cover relative z-10 hidden">
-                </div>
-
-                <!-- Card Details -->
-                <div class="mt-[28mm] px-4 text-center flex flex-col items-center">
-                    <h2 id="display-name" class="text-[18pt] font-bold text-slate-800 uppercase tracking-wide leading-none">សុខ សាន្ត</h2>
-                    <p class="text-[9pt] font-bold text-blue-600 mt-2 uppercase tracking-wide">កាតសម្គាល់ខ្លួន</p>
+                <!-- TOP HEADER -->
+                <header class="w-full pt-[15mm] pb-[5mm] px-[20mm] flex items-start justify-between">
                     
-                    <div class="w-[30mm] h-[0.5mm] bg-blue-100 mt-2 mb-3"></div>
+                    <!-- Top Logo (Auto-loads logo.svg from folder) -->
+                    <div class="w-[28mm] h-[28mm] border-[1.5px] border-slate-800 rounded-full flex items-center justify-center p-1 relative bg-white">
+                        <div class="w-full h-full border-[1px] border-slate-800 rounded-full flex flex-col items-center justify-center bg-slate-50 overflow-hidden">
+                            <!-- Image tries to load logo.svg -->
+                            <img src="logo.svg" alt="Logo" class="w-full h-full object-contain absolute z-10" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <!-- Fallback text if logo.svg is missing -->
+                            <span class="text-[4px] mt-8 z-20 absolute bottom-3" style="display:none;">ក្រសួងអប់រំ</span>
+                        </div>
+                    </div>
 
-                    <!-- Details Box -->
-                    <div class="w-[90mm] h-[40mm] bg-slate-50 border border-slate-100 rounded text-left p-[5mm]">
-                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">បន្ទប់ / CLASSROOM</p>
-                        <p id="display-class" class="text-[11pt] font-bold text-slate-700 mb-3 leading-tight">វិទ្យាសាស្ត្រ ១០១</p>
+                    <!-- Center National Text -->
+                    <div class="flex-1 flex flex-col items-center justify-start text-center">
+                        <h2 class="text-[13pt] text-slate-900 leading-tight">ព្រះរាជាណាចក្រកម្ពុជា</h2>
+                        <h3 class="text-[11pt] text-slate-900 mt-2">ជាតិ សាសនា ព្រះមហាក្សត្រ</h3>
+                        
+                        <div class="w-[30mm] h-[1.5px] bg-slate-800 mt-3 mb-1"></div>
+                        <div class="w-[20mm] h-[1px] bg-slate-800 mt-0.5"></div>
+                    </div>
 
-                        <p class="text-[7pt] font-bold text-slate-400 tracking-wider">ទូរស័ព្ទ / PHONE</p>
-                        <p id="display-phone" class="text-[11pt] font-bold text-slate-700 leading-tight">012 345 678</p>
+                    <div class="w-[28mm]"></div>
+                </header>
+
+                <!-- Institute Name -->
+                <div class="w-full text-center pb-[5mm]">
+                    <h4 class="text-[11pt] tracking-wide">វិទ្យាស្ថានគរុកោសល្យរាជធានីភ្នំពេញ</h4>
+                </div>
+
+                <div class="w-full h-[2px] bg-slate-800"></div>
+
+                <!-- MAIN CONTENT AREA -->
+                <div class="flex-1 flex w-full h-full relative">
+                    
+                    <!-- Decorative Border (Auto-loads pattern.svg via CSS class) -->
+                    <div class="w-[38mm] h-full khmer-border-pattern flex-shrink-0 ml-[5mm]"></div>
+
+                    <!-- Right Side Content Data -->
+                    <div class="flex-1 flex flex-col items-center pt-[15mm] px-[15mm]">
+                        
+                        <!-- Title -->
+                        <h1 class="text-[22pt] text-slate-800 title-shadow tracking-widest mb-[10mm]">កំណត់ត្រាកម្មសិក្សា</h1>
+
+                        <!-- Instructor Info Block -->
+                        <div class="w-full flex flex-col items-center space-y-[4mm] text-[10pt] text-slate-800 leading-relaxed">
+                            <div class="flex">
+                                <span>មណ្ឌលកម្មសិក្សា ៖&nbsp;</span>
+                                <span id="display-center" class="text-blue-900">បឋមសិក្សាភូមិឫស្សី</span>
+                            </div>
+                            <div class="flex">
+                                <span>គ្រូឧទ្ទេសដឹកនាំ ៖&nbsp;</span>
+                                <span id="display-lead" class="text-blue-900">លោក ហៃ ម៉ារីត</span>
+                            </div>
+                            <div class="flex">
+                                <span>គ្រូណែនាំ ៖&nbsp;</span>
+                                <span id="display-guide" class="text-blue-900">លោកស្រី ស៊ឹម សុម៉ាឡា</span>
+                            </div>
+                            <div class="flex">
+                                <span>ថ្នាក់ទី ៖&nbsp;</span>
+                                <span id="display-grade" class="text-blue-900">៤.ក</span>
+                            </div>
+                        </div>
+
+                        <!-- Portrait Photo -->
+                        <div class="mt-[12mm] mb-[12mm] w-[45mm] h-[60mm] border-2 border-slate-300 bg-blue-50 shadow-sm flex items-center justify-center overflow-hidden relative">
+                            <!-- Placeholder Icon -->
+                            <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-16 h-16 text-slate-300 absolute font-sans">
+                                <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM74.08,197.5a64,64,0,0,1,107.84,0,87.83,87.83,0,0,1-107.84,0ZM96,120a32,32,0,1,1,32,32A32,32,0,0,1,96,120Zm97.76,66.41a79.66,79.66,0,0,0-36.06-28.75,48,48,0,1,0-59.4,0,79.66,79.66,0,0,0-36.06,28.75,88,88,0,1,1,131.52,0Z"></path>
+                            </svg>
+                            <div class="absolute inset-0 bg-blue-600 -z-10"></div> 
+                            <img id="display-photo" src="" alt="Intern" class="w-full h-full object-cover relative z-10 hidden">
+                        </div>
+
+                        <!-- Intern Details Block -->
+                        <div class="w-full flex flex-col items-center space-y-[4mm] text-[10pt] text-slate-800 text-center leading-relaxed">
+                            <div class="flex">
+                                <span>កម្មសិក្សាការី ៖&nbsp;</span>
+                                <span id="display-name" class="text-blue-900">សុខ ចាន់ត្រា</span>
+                            </div>
+                            
+                            <div class="flex flex-col items-center leading-[1.8]">
+                                <span class="inline-block">កម្រិតសិក្សា ៖ <span id="display-level-1" class="text-blue-900">បរិញ្ញាបត្រអប់រំ ជំនាញគ្រូបង្រៀន កម្រិតបឋមសិក្សា</span></span>
+                                <span id="display-level-2" class="text-blue-900">(១២+៤)</span>
+                            </div>
+
+                            <div class="pt-[2mm]">
+                                <span id="display-gen" class="text-slate-800">ជំនាន់ទី៤ ឆ្នាំទី២ ក្រុមទី៤</span>
+                            </div>
+                        </div>
+
+                        <!-- Footer Year -->
+                        <div class="mt-auto pb-[20mm] text-[11pt] text-slate-800">
+                            <span>ឆ្នាំសិក្សា ៖&nbsp;</span>
+                            <span id="display-year">២០២៤-២០២៥ និង ២០២៥-២០២៦</span>
+                        </div>
+
                     </div>
                 </div>
-            </div>
-
-            <!-- Terms Text -->
-            <div class="absolute top-[240mm] w-full text-center px-[35mm]">
-                <h3 class="font-bold text-slate-800 text-[12pt] mb-2">Terms and Conditions</h3>
-                <p class="text-[9pt] leading-relaxed text-slate-500">
-                    ឯកសារនេះបម្រើជាទម្រង់ផ្លូវការដែលបានបង្កើតតាមរយៈប្រព័ន្ធចុះឈ្មោះដោយស្វ័យប្រវត្តិ។ កាតសម្គាល់ខាងលើដើរតួជាការកំណត់អត្តសញ្ញាណបណ្ដោះអាសន្នរហូតដល់កាតពិតប្រាកដត្រូវបានចេញ។ សូមរក្សាទុកឯកសារនេះដោយសុវត្ថិភាព ព្រោះវាមានព័ត៌មានផ្ទាល់ខ្លួន។
-                </p>
-            </div>
-
-            <!-- Footer -->
-            <div class="absolute bottom-[10mm] w-full px-[10mm] flex justify-between text-[8pt] text-slate-400">
-                <p>Generated on: <span id="current-date"></span></p>
-                <p>System Ref: <span class="font-mono">NATIVE-VECTOR-KHMER</span></p>
             </div>
         </div>
     </main>
@@ -247,38 +321,77 @@
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(100%)';
                 setTimeout(() => toast.remove(), 300);
-            }, 4000);
+            }, 3000);
         }
 
-        // Set current Date
-        document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric'
-        });
+        // ==========================================
+        // DYNAMIC PREVIEW SCALING FOR MOBILE
+        // ==========================================
+        function adjustA4Scale() {
+            const scaleWrapper = document.getElementById('scale-wrapper');
+            const a4Wrapper = document.getElementById('a4-wrapper');
+            
+            if (window.matchMedia('print').matches) return;
 
-        // Real-time Data Binding
-        const bindInput = (input, display, defaultText) => {
-            document.getElementById(input).addEventListener('input', (e) => {
-                document.getElementById(display).textContent = e.target.value.trim() || defaultText;
+            a4Wrapper.style.transform = 'none';
+            const availableWidth = scaleWrapper.clientWidth;
+            const originalA4Width = a4Wrapper.offsetWidth;
+
+            if (availableWidth < originalA4Width && availableWidth > 0) {
+                const scaleRatio = availableWidth / originalA4Width;
+                a4Wrapper.style.transform = `scale(${scaleRatio})`;
+                const scaledHeight = a4Wrapper.offsetHeight * scaleRatio;
+                scaleWrapper.style.height = `${scaledHeight}px`;
+            } else {
+                a4Wrapper.style.transform = 'none';
+                scaleWrapper.style.height = 'auto';
+            }
+        }
+        window.addEventListener('resize', adjustA4Scale);
+        window.addEventListener('orientationchange', () => setTimeout(adjustA4Scale, 100));
+        window.addEventListener('DOMContentLoaded', adjustA4Scale);
+
+        // ==========================================
+        // TEXT DATA BINDING
+        // ==========================================
+        const bindInput = (inputId, displayId) => {
+            const inputEl = document.getElementById(inputId);
+            const displayEl = document.getElementById(displayId);
+            const defaultText = inputEl.value; 
+
+            inputEl.addEventListener('input', (e) => {
+                displayEl.textContent = e.target.value.trim() || defaultText;
             });
         };
-        bindInput('input-name', 'display-name', 'សុខ សាន្ត');
-        bindInput('input-phone', 'display-phone', '012 345 678');
-        bindInput('input-class', 'display-class', 'វិទ្យាសាស្ត្រ ១០១');
 
-        // File Upload Handler (Native Base64)
+        bindInput('input-name', 'display-name');
+        bindInput('input-center', 'display-center');
+        bindInput('input-lead', 'display-lead');
+        bindInput('input-guide', 'display-guide');
+        bindInput('input-grade', 'display-grade');
+        bindInput('input-gen', 'display-gen');
+        bindInput('input-year', 'display-year');
+
+        document.getElementById('input-level').addEventListener('input', (e) => {
+            const lines = e.target.value.split('\n');
+            document.getElementById('display-level-1').textContent = lines[0] || '';
+            document.getElementById('display-level-2').textContent = lines.slice(1).join(' ') || '';
+        });
+
+        // ==========================================
+        // ID PHOTO UPLOAD HANDLER
+        // ==========================================
         document.getElementById('input-photo').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             if (!file.type.startsWith('image/')) {
-                showToast('Please upload a valid image file.', 'error');
+                showToast('សូមបញ្ចូលឯកសាររូបភាព (PNG/JPG)', 'error');
                 return;
             }
-
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = document.getElementById('display-photo');
                 const placeholder = document.getElementById('photo-placeholder');
-                
                 img.src = event.target.result;
                 img.classList.remove('hidden');
                 placeholder.classList.add('hidden');
